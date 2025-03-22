@@ -1,0 +1,2383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gecko Desert Idle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'sand-light': '#E2C799',
+                        'sand-dark': '#C4A775',
+                        'gecko-light': '#FF9666',
+                        'gecko-dark': '#D96941',
+                        'sky': '#87CEEB',
+                        'stone': '#8D8D8D',
+                    },
+                    fontFamily: {
+                        'game': ['Quicksand', 'sans-serif']
+                    },
+                    keyframes: {
+                        wiggle: {
+                            '0%, 100%': { transform: 'rotate(-3deg)' },
+                            '50%': { transform: 'rotate(3deg)' },
+                        },
+                        scuttle: {
+                            '0%, 100%': { transform: 'translateX(0)' },
+                            '50%': { transform: 'translateX(-10px)' },
+                        },
+                        sleep: {
+                            '0%, 100%': { transform: 'scale(1)' },
+                            '50%': { transform: 'scale(1.05)' },
+                        },
+                        grow: {
+                            '0%': { height: '0%' },
+                            '100%': { height: '100%' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        pulse: {
+                            '0%, 100%': { transform: 'scale(1)' },
+                            '50%': { transform: 'scale(1.05)' },
+                        },
+                        shimmer: {
+                            '0%': { backgroundPosition: '200% 0' },
+                            '100%': { backgroundPosition: '-200% 0' },
+                        }
+                    },
+                    animation: {
+                        wiggle: 'wiggle 1s ease-in-out infinite',
+                        scuttle: 'scuttle 2s ease-in-out infinite',
+                        sleep: 'sleep 3s ease-in-out infinite',
+                        grow: 'grow 3s ease-in-out',
+                        fadeIn: 'fadeIn 0.5s ease-in-out',
+                        pulse: 'pulse 2s ease-in-out infinite',
+                        shimmer: 'shimmer 3s infinite linear'
+                    }
+                }
+            },
+            darkMode: 'class',
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Quicksand', sans-serif;
+            touch-action: manipulation;
+        }
+        
+        .dark {
+            background-color: #111827;
+            color: #e5e7eb;
+        }
+
+        .dark .bg-white {
+            background-color: #1f2937;
+        }
+
+        .dark .border-gray-200 {
+            border-color: #374151;
+        }
+
+        .dark .shadow-md {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        }
+
+        .dark .text-gray-700 {
+            color: #e5e7eb;
+        }
+        
+        .dark .text-gray-600 {
+            color: #d1d5db;
+        }
+
+        .dark .text-gray-800 {
+            color: #f3f4f6;
+        }
+        
+        /* Fix for dark mode contrast issues */
+        .dark .bg-blue-100 {
+            background-color: #263c59;
+        }
+        
+        .dark .bg-orange-100 {
+            background-color: #3c2818;
+        }
+        
+        .dark .bg-yellow-50 {
+            background-color: #433a19;
+        }
+        
+        .dark .bg-yellow-100 {
+            background-color: #584e24;
+        }
+        
+        .dark .bg-gray-50 {
+            background-color: #283444;
+        }
+        
+        .dark .bg-gray-100 {
+            background-color: #2c3a4f;
+        }
+        
+        .dark .bg-gray-200 {
+            background-color: #3a4a60;
+        }
+        
+        .dark .hover\:bg-blue-200:hover {
+            background-color: #354f74;
+        }
+        
+        .dark .hover\:bg-orange-200:hover {
+            background-color: #583f28;
+        }
+        
+        .dark .hover\:bg-gray-200:hover {
+            background-color: #3a4a60;
+        }
+        
+        .dark .achievement-card.locked {
+            background-color: #1f2937;
+            filter: grayscale(100%);
+            opacity: 0.6;
+        }
+
+        .cactus {
+            position: absolute;
+            width: 6px;
+            background-color: #6A994E;
+            border-radius: 2px 2px 0 0;
+            bottom: 0;
+            transform-origin: bottom center;
+        }
+
+        .desert-container {
+            position: relative;
+            height: 80px;
+            overflow: hidden;
+            background-color: #E2C799;
+        }
+
+        .sleep-bubble {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            opacity: 0.8;
+            animation: bubble 3s infinite ease-in-out;
+        }
+
+        @keyframes bubble {
+            0%, 100% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1); opacity: 0.8; }
+        }
+        
+        .upgrade-btn {
+            transition: transform 0.1s ease-in-out;
+        }
+        
+        .upgrade-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .tooltip .tooltiptext::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+        }
+        
+        .map-fragment {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 2px;
+            background: linear-gradient(45deg, #d4af37, #f1c232, #d4af37);
+            background-size: 200% 200%;
+            animation: shimmer 3s infinite linear;
+            z-index: 10;
+            cursor: pointer;
+        }
+        
+        .achievement-card {
+            transition: all 0.3s ease;
+        }
+        
+        .achievement-card.locked {
+            filter: grayscale(100%);
+            opacity: 0.6;
+        }
+        
+        .achievement-card.unlocked {
+            box-shadow: 0 0 8px 2px rgba(255, 215, 0, 0.6);
+        }
+        
+        .tab-button {
+            transition: all 0.2s ease;
+        }
+        
+        .tab-button.active {
+            background-color: #5D5CDE;
+            color: white;
+        }
+        
+        .area-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        
+        .area-card.selected {
+            border-color: #5D5CDE;
+            box-shadow: 0 0 8px 2px rgba(93, 92, 222, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-amber-50 min-h-screen font-game transition-colors duration-300">
+    <div class="container mx-auto px-4 py-6 max-w-lg">
+        <!-- Header -->
+        <div class="text-center mb-6">
+            <h1 class="text-3xl font-bold text-gecko-dark mb-2">🦎 Gecko Desert Idle</h1>
+            <p class="text-sm text-gray-600">Watch your gecko collect cacti in the desert</p>
+        </div>
+        
+        <!-- Game Area -->
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6 border border-gray-200">
+            <!-- Area Navigation -->
+            <div class="flex justify-between items-center mb-2">
+                <div class="text-sm">
+                    <span class="mr-1">Current Area:</span>
+                    <span id="currentAreaName" class="font-bold tooltip">
+                        Desert
+                        <span id="areaTooltip" class="tooltiptext">
+                            • Standard area with no modifiers
+                        </span>
+                    </span>
+                </div>
+                <button id="switchAreaBtn" class="text-xs py-1 px-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                    Switch Area
+                </button>
+            </div>
+            
+            <!-- Desert Display -->
+            <div class="desert-container rounded-lg mb-4" id="desertDisplay">
+                <div id="cactusDisplay"></div>
+                <div id="geckoElement" class="absolute bottom-0 left-1/2 transform -translate-x-1/2">
+                    <!-- Gecko character will be drawn here -->
+                </div>
+            </div>
+            
+            <!-- Stats Display -->
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div class="bg-orange-100 p-3 rounded-lg text-center">
+                    <div class="text-sm text-gray-600">Cacti</div>
+                    <div class="text-xl font-bold text-orange-700" id="cactusCount">0</div>
+                </div>
+                <div class="bg-blue-100 p-3 rounded-lg text-center">
+                    <div class="text-sm text-gray-600">Energy</div>
+                    <div class="flex justify-center items-center">
+                        <div class="w-full bg-gray-200 rounded-full h-4">
+                            <div class="bg-blue-500 h-4 rounded-full" id="energyBar" style="width: 100%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Map Fragment Display -->
+            <div class="flex justify-between items-center mb-4 bg-yellow-50 p-2 rounded-lg">
+                <div class="flex items-center">
+                    <div class="w-6 h-6 mr-2 bg-gradient-to-r from-yellow-300 to-yellow-500 rounded"></div>
+                    <span class="text-sm">Map Fragments:</span>
+                </div>
+                <div class="flex">
+                    <div id="fragmentsDisplay" class="text-sm font-bold">0/7</div>
+                </div>
+            </div>
+            
+            <!-- Status Message -->
+            <div class="text-center mb-2">
+                <p class="text-sm text-gray-600" id="statusMessage">Gecko is ready to collect!</p>
+            </div>
+            
+            <!-- Manual Save Button -->
+            <div class="text-center">
+                <button id="manualSave" class="text-xs py-1 px-2 bg-orange-500 text-white rounded hover:bg-orange-600">
+                    Save Game
+                </button>
+                <div id="saveConfirmation" class="text-xs text-orange-600 mt-1 hidden">Game saved!</div>
+            </div>
+        </div>
+        
+        <!-- Tab Navigation -->
+        <div class="flex mb-2 border-b border-gray-200">
+            <button class="tab-button active py-2 px-4 rounded-t-lg" data-tab="upgrades">Upgrades</button>
+            <button class="tab-button py-2 px-4 rounded-t-lg" data-tab="areas">Areas</button>
+            <button class="tab-button py-2 px-4 rounded-t-lg" data-tab="stats">Stats</button>
+            <button class="tab-button py-2 px-4 rounded-t-lg" data-tab="achievements">Achievements</button>
+        </div>
+        
+        <!-- Tab Content -->
+        <div class="tab-content">
+            <!-- Upgrades Tab -->
+            <div id="upgradesTab" class="bg-white rounded-lg shadow-md p-4 mb-6 border border-gray-200">
+                <h2 class="text-xl font-bold text-gecko-dark mb-3">Upgrades</h2>
+                
+                <!-- Gecko Upgrades -->
+                <div class="mb-4">
+                    <h3 class="text-md font-semibold text-gray-800 mb-2">Gecko</h3>
+                    <div class="grid grid-cols-1 gap-3">
+                        <button id="energyUpgrade" class="upgrade-btn bg-blue-100 hover:bg-blue-200 p-3 rounded-lg text-left">
+                            <div class="flex justify-between items-center mb-1">
+                                <div class="font-medium">Energy</div>
+                                <div class="text-sm font-medium">
+                                    Cost: <span id="energyCost">10</span> 🌵
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div class="text-xs text-gray-600">Level: <span id="energyLevel">1</span></div>
+                                <div class="text-xs text-gray-600">
+                                    <span id="energyCurrentValue">100</span> → <span id="energyNextValue">120</span> points
+                                </div>
+                            </div>
+                        </button>
+                        
+                        <button id="baskingradeUpgrade" class="upgrade-btn bg-blue-100 hover:bg-blue-200 p-3 rounded-lg text-left">
+                            <div class="flex justify-between items-center mb-1">
+                                <div class="font-medium">Basking</div>
+                                <div class="text-sm font-medium">
+                                    Cost: <span id="baskingrCost">15</span> 🌵
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div class="text-xs text-gray-600">Level: <span id="baskingLevel">1</span></div>
+                                <div class="text-xs text-gray-600">
+                                    <span id="baskingCurrentValue">5</span> → <span id="baskingNextValue">7</span> per second
+                                </div>
+                            </div>
+                        </button>
+                        
+                        <button id="collectingUpgrade" class="upgrade-btn bg-blue-100 hover:bg-blue-200 p-3 rounded-lg text-left">
+                            <div class="flex justify-between items-center mb-1">
+                                <div class="font-medium">Collecting</div>
+                                <div class="text-sm font-medium">
+                                    Cost: <span id="collectingCost">20</span> 🌵
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div class="text-xs text-gray-600">Level: <span id="collectingLevel">1</span></div>
+                                <div class="text-xs text-gray-600">
+                                    <span id="collectingCurrentValue">1.0</span> → <span id="collectingNextValue">1.5</span> cacti per collect
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Cactus Upgrades -->
+                <div>
+                    <h3 class="text-md font-semibold text-gray-800 mb-2">Cacti</h3>
+                    <div class="grid grid-cols-1 gap-3">
+                        <button id="qualityUpgrade" class="upgrade-btn bg-orange-100 hover:bg-orange-200 p-3 rounded-lg text-left">
+                            <div class="flex justify-between items-center mb-1">
+                                <div class="font-medium">Quality</div>
+                                <div class="text-sm font-medium">
+                                    Cost: <span id="qualityCost">25</span> 🌵
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div class="text-xs text-gray-600">Level: <span id="qualityLevel">1</span></div>
+                                <div class="text-xs text-gray-600">
+                                    <span id="qualityCurrentValue">1.0</span> → <span id="qualityNextValue">1.5</span> value per cactus
+                                </div>
+                            </div>
+                        </button>
+                        
+                        <button id="growthUpgrade" class="upgrade-btn bg-orange-100 hover:bg-orange-200 p-3 rounded-lg text-left">
+                            <div class="flex justify-between items-center mb-1">
+                                <div class="font-medium">Growth</div>
+                                <div class="text-sm font-medium">
+                                    Cost: <span id="growthCost">30</span> 🌵
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div class="text-xs text-gray-600">Level: <span id="growthLevel">1</span></div>
+                                <div class="text-xs text-gray-600">
+                                    <span id="growthCurrentValue">0.5</span> → <span id="growthNextValue">0.6</span>% per second
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Areas Tab -->
+            <div id="areasTab" class="bg-white rounded-lg shadow-md p-4 mb-6 border border-gray-200 hidden">
+                <h2 class="text-xl font-bold text-gecko-dark mb-3">Areas</h2>
+                
+                <div id="unlockedAreasContainer" class="grid grid-cols-1 gap-4 mb-4">
+                    <!-- Areas will be listed here -->
+                    <div class="area-card selected p-3 rounded-lg" style="background-color: rgba(226, 199, 153, 0.3);" data-area="Desert">
+                        <div class="flex justify-between items-center mb-1">
+                            <div class="font-medium">Desert</div>
+                            <div class="text-xs py-1 px-2 bg-blue-100 rounded">Standard</div>
+                        </div>
+                        <div class="text-xs text-gray-600 mt-1">The starting area with balanced conditions</div>
+                        <div class="grid grid-cols-2 gap-1 mt-2">
+                            <div class="text-xs">Value: <span class="font-medium">×1.0</span></div>
+                            <div class="text-xs">Growth: <span class="font-medium">×1.0</span></div>
+                            <div class="text-xs">Collecting: <span class="font-medium">×1.0</span></div>
+                            <div class="text-xs">Basking: <span class="font-medium">×1.0</span></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="unlockAreaSection" class="mt-4 p-3 bg-yellow-50 rounded-lg">
+                    <h3 class="font-semibold text-yellow-800 mb-2">Unlock New Area</h3>
+                    <p class="text-xs text-gray-600 mb-3">Collect 7 Map Fragments to discover a new area!</p>
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <span class="text-sm font-medium">Progress:</span>
+                            <span id="fragmentsProgress" class="text-sm font-bold ml-1">0/7</span>
+                        </div>
+                        <button id="unlockAreaBtn" class="py-1 px-3 bg-yellow-500 text-white rounded disabled opacity-50" disabled>
+                            Discover (7 fragments)
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Stats Tab -->
+            <div id="statsTab" class="bg-white rounded-lg shadow-md p-4 mb-6 border border-gray-200 hidden">
+                <h2 class="text-xl font-bold text-gecko-dark mb-3">Statistics</h2>
+                
+                <div class="grid grid-cols-1 gap-4">
+                    <div class="p-3 rounded-lg bg-blue-50">
+                        <h3 class="font-medium mb-2">Resources</h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="text-sm">Total Cacti Collected:</div>
+                            <div class="text-sm font-bold text-right" id="statTotalCactiCollected">0</div>
+                            <div class="text-sm">Current Cacti:</div>
+                            <div class="text-sm font-bold text-right" id="statCurrentCacti">0</div>
+                            <div class="text-sm">Map Fragments:</div>
+                            <div class="text-sm font-bold text-right" id="statMapFragments">0/7</div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 rounded-lg bg-orange-50">
+                        <h3 class="font-medium mb-2">Progression</h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="text-sm">Time Played:</div>
+                            <div class="text-sm font-bold text-right" id="statTimePlayed">0h 0m 0s</div>
+                            <div class="text-sm">Upgrades Purchased:</div>
+                            <div class="text-sm font-bold text-right" id="statUpgradesPurchased">0</div>
+                            <div class="text-sm">Areas Unlocked:</div>
+                            <div class="text-sm font-bold text-right" id="statAreasUnlocked">1</div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 rounded-lg bg-purple-50">
+                        <h3 class="font-medium mb-2">Current Area Stats</h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="text-sm">Energy Level:</div>
+                            <div class="text-sm font-bold text-right" id="statAreaEnergyLevel">1</div>
+                            <div class="text-sm">Basking Level:</div>
+                            <div class="text-sm font-bold text-right" id="statAreaBaskingLevel">1</div>
+                            <div class="text-sm">Collecting Level:</div>
+                            <div class="text-sm font-bold text-right" id="statAreaCollectingLevel">1</div>
+                            <div class="text-sm">Quality Level:</div>
+                            <div class="text-sm font-bold text-right" id="statAreaQualityLevel">1</div>
+                            <div class="text-sm">Growth Level:</div>
+                            <div class="text-sm font-bold text-right" id="statAreaGrowthLevel">1</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Achievements Tab -->
+            <div id="achievementsTab" class="bg-white rounded-lg shadow-md p-4 mb-6 border border-gray-200 hidden">
+                <h2 class="text-xl font-bold text-gecko-dark mb-3">Achievements</h2>
+                
+                <div class="grid grid-cols-1 gap-3" id="achievementsList">
+                    <!-- Achievements list will be dynamically populated -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Settings & Info -->
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6 border border-gray-200">
+            <h2 class="text-xl font-bold text-gecko-dark mb-3">Settings</h2>
+            
+            <div class="grid grid-cols-1 gap-3">
+                <div class="flex justify-between">
+                    <button id="exportSave" class="py-2 px-3 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm">
+                        Export Save
+                    </button>
+                    <button id="importSave" class="py-2 px-3 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm">
+                        Import Save
+                    </button>
+                    <button id="toggleTheme" class="py-2 px-3 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm">
+                        Toggle Theme
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Support -->
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6 border border-gray-200">
+            <h2 class="text-xl font-bold text-gecko-dark mb-3">Support the Developer</h2>
+            
+            <div class="grid grid-cols-2 gap-3">
+                <a href="https://ko-fi.com/cygryu" target="_blank" class="py-2 px-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-center text-sm font-medium">
+                    Ko-Fi
+                </a>
+                <a href="https://www.paypal.com/paypalme/sofiansu?country.x=ID&locale.x=en_US" target="_blank" class="py-2 px-3 bg-blue-400 hover:bg-blue-500 text-white rounded-lg text-center text-sm font-medium">
+                    PayPal
+                </a>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="text-center text-sm text-gray-600 mb-8">
+            <p>Developed by CygRyu</p>
+            <p class="text-xs mt-1">v1.1.0</p>
+        </div>
+    </div>
+    
+    <!-- Import Dialog -->
+    <div id="importDialog" class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center z-50">
+        <div class="bg-white p-4 rounded-lg max-w-md w-full mx-4 dark:bg-gray-800">
+            <h3 class="text-lg font-bold mb-2">Import Save</h3>
+            <textarea id="importText" class="w-full p-2 border border-gray-300 rounded mb-4 h-32 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Paste your save code here..."></textarea>
+            <div class="flex justify-end">
+                <button id="importCancel" class="py-1 px-3 bg-gray-100 hover:bg-gray-200 rounded mr-2 dark:bg-gray-700 dark:hover:bg-gray-600">Cancel</button>
+                <button id="importConfirm" class="py-1 px-3 bg-blue-500 hover:bg-blue-600 text-white rounded">Import</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Export Dialog -->
+    <div id="exportDialog" class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center z-50">
+        <div class="bg-white p-4 rounded-lg max-w-md w-full mx-4 dark:bg-gray-800">
+            <h3 class="text-lg font-bold mb-2">Export Save</h3>
+            <p class="text-sm mb-2">Copy the code below to save your game:</p>
+            <textarea id="exportText" class="w-full p-2 border border-gray-300 rounded mb-4 h-32 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" readonly></textarea>
+            <div class="flex justify-between">
+                <button id="copyToClipboard" class="py-1 px-3 bg-green-500 hover:bg-green-600 text-white rounded">Copy to Clipboard</button>
+                <button id="exportClose" class="py-1 px-3 bg-gray-100 hover:bg-gray-200 rounded dark:bg-gray-700 dark:hover:bg-gray-600">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Area Switch Dialog -->
+    <div id="areaSwitchDialog" class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center z-50">
+        <div class="bg-white p-4 rounded-lg max-w-md w-full mx-4 dark:bg-gray-800">
+            <h3 class="text-lg font-bold mb-2">Switch Area</h3>
+            <p class="text-sm text-gray-600 mb-4 dark:text-gray-400">Select an area to switch to:</p>
+            <div id="areasList" class="mb-4 max-h-60 overflow-y-auto">
+                <!-- Areas will be listed here -->
+            </div>
+            <div class="text-sm text-red-500 mb-4">
+                <p>Switching areas costs 100 cacti and has a 5 minute cooldown.</p>
+                <p id="switchCooldownText" class="mt-1"></p>
+            </div>
+            <div class="flex justify-end">
+                <button id="switchCancel" class="py-1 px-3 bg-gray-100 hover:bg-gray-200 rounded mr-2 dark:bg-gray-700 dark:hover:bg-gray-600">Cancel</button>
+                <button id="switchConfirm" class="py-1 px-3 bg-blue-500 hover:bg-blue-600 text-white rounded">Switch</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- New Area Discovery Dialog -->
+    <div id="newAreaDialog" class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center z-50">
+        <div class="bg-white p-4 rounded-lg max-w-md w-full mx-4 dark:bg-gray-800">
+            <h3 class="text-lg font-bold mb-2">New Area Discovered!</h3>
+            <div id="newAreaInfo" class="p-3 rounded-lg mb-4 animate-pulse" style="background-color: rgba(226, 199, 153, 0.3);">
+                <!-- New area info will be shown here -->
+            </div>
+            <div class="flex justify-end">
+                <button id="newAreaConfirm" class="py-1 px-3 bg-blue-500 hover:bg-blue-600 text-white rounded">Awesome!</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Achievement Notification -->
+    <div id="achievementNotification" class="fixed top-4 right-4 bg-yellow-100 border-l-4 border-yellow-500 p-3 rounded shadow-md hidden animate-fadeIn dark:bg-yellow-900 dark:border-yellow-600">
+        <div class="flex">
+            <div class="mr-2">🏆</div>
+            <div>
+                <div class="font-medium text-sm">Achievement Unlocked!</div>
+                <div id="achievementName" class="text-xs"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const VERSION = '1.1.0';
+        
+        // Game state
+        let gameState = {
+            cacti: 0,
+            totalCacti: 0,
+            maxEnergy: 100,
+            currentEnergy: 100,
+            isResting: false,
+            baskingRate: 5,
+            baskingTime: 5000, // 5 seconds
+            collectingRate: 1,
+            cactiQuality: 1,
+            growthRate: 0.5, // percentage of max cacti that regrows per second
+            maxCacti: 100,
+            availableCacti: 100,
+            
+            // Upgrade levels
+            energyLevel: 1,
+            baskingLevel: 1,
+            collectingLevel: 1,
+            qualityLevel: 1,
+            growthLevel: 1,
+            
+            // Last timestamp for game loop
+            lastUpdate: Date.now(),
+            
+            // Statistics
+            totalCactiCollected: 0,
+            totalTimePlayed: 0,
+            startTime: Date.now(),
+            lastPlayTime: Date.now(),
+            totalUpgradesPurchased: 0,
+            
+            // Areas
+            currentArea: 'Desert',
+            unlockedAreas: ['Desert'],
+            areaLastSwitch: 0,
+            mapFragments: 0,
+            totalAreasUnlocked: 1,
+            areasData: {
+                'Desert': {
+                    cactiQuality: 1,
+                    growthRate: 0.5,
+                    energyLevel: 1,
+                    baskingLevel: 1,
+                    collectingLevel: 1,
+                    qualityLevel: 1,
+                    growthLevel: 1,
+                    valueModifier: 1,
+                    growthModifier: 1,
+                    collectingModifier: 1,
+                    baskingModifier: 1,
+                    color: '#E2C799',
+                    description: 'The starting area with balanced conditions'
+                }
+            },
+            
+            // Achievements
+            achievements: {
+                firstCollection: false,
+                cactiHoarder: false,
+                cactiTycoon: false,
+                cactiMogul: false,
+                upgradeFan: false,
+                upgradeEnthusiast: false,
+                superGecko: false,
+                dedicatedCollector: false,
+                veteranCollector: false,
+                masterCollector: false,
+                traveller: false,
+                explorer: false,
+                legendaryCollector: false
+            },
+            
+            // Version for save compatibility
+            version: VERSION
+        };
+        
+        // Achievement definitions
+        const achievementDefinitions = {
+            firstCollection: {
+                name: "First Collection",
+                description: "Collect cacti for the first time",
+                icon: "✂️"
+            },
+            cactiHoarder: {
+                name: "Cacti Hoarder",
+                description: "Collect 100 cacti total",
+                icon: "🌵"
+            },
+            cactiTycoon: {
+                name: "Cacti Tycoon",
+                description: "Collect 1,000 cacti total",
+                icon: "🏜️"
+            },
+            cactiMogul: {
+                name: "Cacti Mogul",
+                description: "Collect 10,000 cacti total",
+                icon: "🌵"
+            },
+            upgradeFan: {
+                name: "Upgrade Fan",
+                description: "Purchase 10 upgrades",
+                icon: "📈"
+            },
+            upgradeEnthusiast: {
+                name: "Upgrade Enthusiast",
+                description: "Purchase 50 upgrades",
+                icon: "🔼"
+            },
+            superGecko: {
+                name: "Super Gecko",
+                description: "Reach level 10 in any stat",
+                icon: "🦸‍♂️"
+            },
+            dedicatedCollector: {
+                name: "Dedicated Collector",
+                description: "Play for 5 hours total",
+                icon: "⏱️"
+            },
+            veteranCollector: {
+                name: "Veteran Collector",
+                description: "Play for 50 hours total",
+                icon: "🕰️"
+            },
+            masterCollector: {
+                name: "Master Collector",
+                description: "Play for 100 hours total",
+                icon: "⏳"
+            },
+            traveller: {
+                name: "Traveller",
+                description: "Unlock 3 new areas",
+                icon: "🗺️"
+            },
+            explorer: {
+                name: "Explorer",
+                description: "Unlock 10 new areas",
+                icon: "🧭"
+            },
+            legendaryCollector: {
+                name: "Legendary Collector",
+                description: "Unlock all achievements",
+                icon: "👑"
+            }
+        };
+        
+        // Area templates for random generation
+        const areaTemplates = {
+            names: [
+                "Desert", "Oasis", "Canyon", "Mesa", "Dunes", 
+                "Terrarium", "Badlands", "Valley", "Plateau", "Ridge",
+                "Basin", "Rocks", "Savanna", "Plains", "Flats",
+                "Creek", "Springs", "Grotto", "Cavern", "Hollow"
+            ],
+            adjectives: [
+                "Sandy", "Rocky", "Scorching", "Arid", "Dry", 
+                "Misty", "Warm", "Ancient", "Barren", "Red",
+                "Mysterious", "Hidden", "Twisted", "Sacred", "Sunbaked",
+                "Golden", "Dusty", "Silent", "Windswept", "Rugged"
+            ],
+            colors: [
+                "#E2C799", "#DEB887", "#D2B48C", "#C19A6B", "#F4A460",
+                "#CD853F", "#BC8F8F", "#D2691E", "#DAA520", "#B8860B",
+                "#E6BE8A", "#C4A484", "#C2B280", "#EDC9AF", "#E8C782",
+                "#D3A774", "#CBA135", "#E5D08F", "#D4B483", "#E8D0A9"
+            ],
+            // Modifiers range from bad (-0.3) to good (0.3)
+            modifierRanges: {
+                valueModifier: [-0.3, 0.3],
+                growthModifier: [-0.3, 0.3],
+                collectingModifier: [-0.3, 0.3],
+                baskingModifier: [-0.3, 0.3]
+            },
+            rarities: [
+                { name: "Common", chance: 0.6, modifierMultiplier: 1 },
+                { name: "Uncommon", chance: 0.25, modifierMultiplier: 1.5 },
+                { name: "Rare", chance: 0.10, modifierMultiplier: 2 },
+                { name: "Epic", chance: 0.04, modifierMultiplier: 2.5 },
+                { name: "Legendary", chance: 0.01, modifierMultiplier: 3 }
+            ]
+        };
+        
+        // Upgrade costs (base costs, will increase with level)
+        const upgradeCosts = {
+            energy: 10,
+            basking: 15,
+            collecting: 20,
+            quality: 25,
+            growth: 30
+        };
+        
+        // DOM elements
+        const cactusCount = document.getElementById('cactusCount');
+        const energyBar = document.getElementById('energyBar');
+        const statusMessage = document.getElementById('statusMessage');
+        const desertDisplay = document.getElementById('desertDisplay');
+        const cactusDisplay = document.getElementById('cactusDisplay');
+        const geckoElement = document.getElementById('geckoElement');
+        const fragmentsDisplay = document.getElementById('fragmentsDisplay');
+        const fragmentsProgress = document.getElementById('fragmentsProgress');
+        const unlockAreaBtn = document.getElementById('unlockAreaBtn');
+        const currentAreaName = document.getElementById('currentAreaName');
+        const areaTooltip = document.getElementById('areaTooltip');
+        const saveConfirmation = document.getElementById('saveConfirmation');
+        
+        // Tab elements
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const upgradesTab = document.getElementById('upgradesTab');
+        const areasTab = document.getElementById('areasTab');
+        const statsTab = document.getElementById('statsTab');
+        const achievementsTab = document.getElementById('achievementsTab');
+        const switchAreaBtn = document.getElementById('switchAreaBtn');
+        
+        // Stats elements
+        const statTotalCactiCollected = document.getElementById('statTotalCactiCollected');
+        const statCurrentCacti = document.getElementById('statCurrentCacti');
+        const statMapFragments = document.getElementById('statMapFragments');
+        const statTimePlayed = document.getElementById('statTimePlayed');
+        const statUpgradesPurchased = document.getElementById('statUpgradesPurchased');
+        const statAreasUnlocked = document.getElementById('statAreasUnlocked');
+        const statAreaEnergyLevel = document.getElementById('statAreaEnergyLevel');
+        const statAreaBaskingLevel = document.getElementById('statAreaBaskingLevel');
+        const statAreaCollectingLevel = document.getElementById('statAreaCollectingLevel');
+        const statAreaQualityLevel = document.getElementById('statAreaQualityLevel');
+        const statAreaGrowthLevel = document.getElementById('statAreaGrowthLevel');
+        
+        // Upgrade buttons
+        const energyUpgrade = document.getElementById('energyUpgrade');
+        const baskingUpgrade = document.getElementById('baskingradeUpgrade');
+        const collectingUpgrade = document.getElementById('collectingUpgrade');
+        const qualityUpgrade = document.getElementById('qualityUpgrade');
+        const growthUpgrade = document.getElementById('growthUpgrade');
+        
+        // Upgrade levels display
+        const energyLevel = document.getElementById('energyLevel');
+        const baskingLevel = document.getElementById('baskingLevel');
+        const collectingLevel = document.getElementById('collectingLevel');
+        const qualityLevel = document.getElementById('qualityLevel');
+        const growthLevel = document.getElementById('growthLevel');
+        
+        // Upgrade costs display
+        const energyCost = document.getElementById('energyCost');
+        const baskingCost = document.getElementById('baskingrCost');
+        const collectingCost = document.getElementById('collectingCost');
+        const qualityCost = document.getElementById('qualityCost');
+        const growthCost = document.getElementById('growthCost');
+        
+        // Settings buttons
+        const exportSave = document.getElementById('exportSave');
+        const importSave = document.getElementById('importSave');
+        const toggleTheme = document.getElementById('toggleTheme');
+        const manualSave = document.getElementById('manualSave');
+        
+        // Import dialog
+        const importDialog = document.getElementById('importDialog');
+        const importText = document.getElementById('importText');
+        const importCancel = document.getElementById('importCancel');
+        const importConfirm = document.getElementById('importConfirm');
+        
+        // Export dialog
+        const exportDialog = document.getElementById('exportDialog');
+        const exportText = document.getElementById('exportText');
+        const exportClose = document.getElementById('exportClose');
+        const copyToClipboard = document.getElementById('copyToClipboard');
+        
+        // Area switch dialog
+        const areaSwitchDialog = document.getElementById('areaSwitchDialog');
+        const areasList = document.getElementById('areasList');
+        const switchCancel = document.getElementById('switchCancel');
+        const switchConfirm = document.getElementById('switchConfirm');
+        const switchCooldownText = document.getElementById('switchCooldownText');
+        
+        // New area dialog
+        const newAreaDialog = document.getElementById('newAreaDialog');
+        const newAreaInfo = document.getElementById('newAreaInfo');
+        const newAreaConfirm = document.getElementById('newAreaConfirm');
+        
+        // Achievement notification
+        const achievementNotification = document.getElementById('achievementNotification');
+        const achievementName = document.getElementById('achievementName');
+        const achievementsList = document.getElementById('achievementsList');
+        
+        // Initialize game
+        function initGame() {
+            // Try to load saved game
+            loadGame();
+            
+            // Initialize desert display
+            createDesert();
+            
+            // Update cacti display based on available cacti
+            updateCactiDisplay();
+            
+            // Initialize gecko
+            if (gameState.isResting) {
+                drawGecko('sleeping');
+            } else {
+                drawGecko('idle');
+            }
+            
+            // Initialize achievements list
+            populateAchievements();
+            
+            // Initialize areas list
+            populateAreasUI();
+            
+            // Update UI
+            updateUI();
+            
+            // Start game loop
+            requestAnimationFrame(gameLoop);
+            
+            // Set dark mode if preferred
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark');
+            }
+            
+            // Listen for theme changes
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+                if (event.matches) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            });
+            
+            // Update last play time
+            gameState.lastPlayTime = Date.now();
+        }
+        
+        // Game state for collecting action
+        let collectingTimer = 0;
+        let collectCooldown = 1000; // 1 second between collects
+        let isCurrentlyCollecting = false;
+        
+        // Game loop
+        function gameLoop() {
+            const now = Date.now();
+            const deltaTime = (now - gameState.lastUpdate) / 1000; // in seconds
+            gameState.lastUpdate = now;
+            
+            // Update total time played
+            gameState.totalTimePlayed += deltaTime;
+            
+            // Check achievements
+            checkAchievements();
+            
+            // Cacti regrowth
+            if (gameState.availableCacti < gameState.maxCacti) {
+                const regrowAmount = gameState.maxCacti * gameState.growthRate * deltaTime;
+                gameState.availableCacti = Math.min(gameState.maxCacti, gameState.availableCacti + regrowAmount);
+                updateCactiDisplay();
+            }
+            
+            // Gecko actions
+            if (gameState.isResting) {
+                // Basking
+                if (gameState.currentEnergy >= gameState.maxEnergy) {
+                    gameState.isResting = false;
+                    statusMessage.textContent = "Gecko is ready to collect!";
+                    drawGecko('idle');
+                }
+                else {
+                    gameState.currentEnergy = Math.min(gameState.maxEnergy, gameState.currentEnergy + gameState.baskingRate * deltaTime);
+                    statusMessage.textContent = "Gecko is basking... 🌞";
+                }
+            } else {
+                // Working
+                if (gameState.currentEnergy <= 0) {
+                    gameState.isResting = true;
+                    statusMessage.textContent = "Gecko is exhausted and needs to bask!";
+                    drawGecko('sleeping');
+                    
+                    // Schedule waking up
+                    setTimeout(() => {
+                        if (gameState.isResting && gameState.currentEnergy > 0) {
+                            gameState.isResting = false;
+                            statusMessage.textContent = "Gecko is ready to collect!";
+                            drawGecko('idle');
+                        }
+                    }, gameState.baskingTime);
+                }
+                else if (gameState.availableCacti > 0) {
+                    // Check if it's time for a collection
+                    collectingTimer += deltaTime * 1000;
+                    
+                    if (collectingTimer >= collectCooldown && !isCurrentlyCollecting) {
+                        // Time to collect cacti!
+                        isCurrentlyCollecting = true;
+                        
+                        // Animate gecko collecting
+                        drawGecko('collecting');
+                        
+                        // Schedule the actual collection after animation starts
+                        setTimeout(() => {
+                            // Collect cacti
+                            const collectAmount = Math.min(gameState.availableCacti, gameState.collectingRate);
+                            gameState.availableCacti -= collectAmount;
+                            
+                            // Apply area modifiers
+                            const currentAreaData = gameState.areasData[gameState.currentArea];
+                            const areaValueModifier = currentAreaData.valueModifier;
+                            const areaCollectingModifier = currentAreaData.collectingModifier;
+                            
+                            // Apply collecting difficulty modifier (affects effective collect amount)
+                            const effectiveCollectAmount = collectAmount * areaCollectingModifier;
+                            
+                            // Calculate cacti gained with quality and area modifiers
+                            const cactiGained = effectiveCollectAmount * gameState.cactiQuality * areaValueModifier;
+                            
+                            // Show floating text for cacti gained
+                            showFloatingText(`+${Math.floor(cactiGained)}`, geckoElement);
+                            
+                            // Add to inventory with slight delay for visual feedback
+                            setTimeout(() => {
+                                gameState.cacti += cactiGained;
+                                gameState.totalCacti += cactiGained;
+                                gameState.totalCactiCollected += cactiGained;
+                                
+                                // Check for map fragment discovery (0.5% chance per collection)
+                                if (Math.random() < 0.005) {
+                                    gameState.mapFragments += 1;
+                                    showFloatingText("📜 Map Fragment!", geckoElement);
+                                    updateFragmentsDisplay();
+                                    
+                                    // Check if we can unlock a new area
+                                    if (gameState.mapFragments >= 7) {
+                                        unlockAreaBtn.disabled = false;
+                                        unlockAreaBtn.classList.remove('disabled', 'opacity-50');
+                                    }
+                                }
+                                
+                                updateUI();
+                                
+                                // Check achievement - First Collection
+                                if (!gameState.achievements.firstCollection) {
+                                    unlockAchievement('firstCollection');
+                                }
+                            }, 300);
+                            
+                            // Deplete energy per collection
+                            gameState.currentEnergy = Math.max(0, gameState.currentEnergy - 5);
+                            
+                            // Visual feedback for collecting
+                            collectCactiAnimation();
+                            
+                            // Return to idle state after collecting
+                            setTimeout(() => {
+                                if (!gameState.isResting) {
+                                    drawGecko('idle');
+                                }
+                                isCurrentlyCollecting = false;
+                            }, 500);
+                            
+                            // Reset timer
+                            collectingTimer = 0;
+                            
+                        }, 200); // Short delay to let animation start
+                    }
+                    
+                    statusMessage.textContent = isCurrentlyCollecting ? 
+                        "Gecko is collecting cacti!" : "Gecko is looking for cacti to collect...";
+                } else {
+                    statusMessage.textContent = "Waiting for cacti to grow...";
+                }
+            }
+            
+            // Update UI
+            updateUI();
+            
+            // Save game every 30 seconds
+            if (now % 30000 < 100) {
+                saveGame();
+            }
+            
+            // Continue game loop
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Get upgrade value (current or next) for the current area
+        function getUpgradeValue(type, isNext = false) {
+            // Get the current area data
+            const areaData = gameState.areasData[gameState.currentArea];
+            
+            // Get the level for the current area
+            const level = areaData[`${type}Level`] + (isNext ? 1 : 0);
+            
+            switch(type) {
+                case 'energy':
+                    return 100 + (level - 1) * 20;
+                case 'basking':
+                    const baseBasking = 5 + (level - 1) * 2;
+                    return (baseBasking * areaData.baskingModifier).toFixed(1);
+                case 'collecting':
+                    const baseCollecting = (1 + (level - 1) * 0.5);
+                    return (baseCollecting * areaData.collectingModifier).toFixed(1);
+                case 'quality':
+                    const baseQuality = (1 + (level - 1) * 0.5);
+                    return (baseQuality * areaData.valueModifier).toFixed(1);
+                case 'growth':
+                    const baseGrowth = (0.5 + (level - 1) * 0.1);
+                    return (baseGrowth * areaData.growthModifier).toFixed(1);
+                default:
+                    return 0;
+            }
+        }
+        
+        // Update UI elements
+        function updateUI() {
+            // Update resource displays
+            cactusCount.textContent = Math.floor(gameState.cacti);
+            
+            // Update energy bar
+            const energyPercentage = (gameState.currentEnergy / gameState.maxEnergy) * 100;
+            energyBar.style.width = `${energyPercentage}%`;
+            
+            // Get current area data
+            const currentAreaData = gameState.areasData[gameState.currentArea];
+            
+            // Update upgrade levels for current area
+            energyLevel.textContent = currentAreaData.energyLevel;
+            baskingLevel.textContent = currentAreaData.baskingLevel;
+            collectingLevel.textContent = currentAreaData.collectingLevel;
+            qualityLevel.textContent = currentAreaData.qualityLevel;
+            growthLevel.textContent = currentAreaData.growthLevel;
+            
+            // Update upgrade costs
+            energyCost.textContent = calculateUpgradeCost('energy');
+            baskingCost.textContent = calculateUpgradeCost('basking');
+            collectingCost.textContent = calculateUpgradeCost('collecting');
+            qualityCost.textContent = calculateUpgradeCost('quality');
+            growthCost.textContent = calculateUpgradeCost('growth');
+            
+            // Update upgrade values - current and next
+            document.getElementById('energyCurrentValue').textContent = getUpgradeValue('energy');
+            document.getElementById('energyNextValue').textContent = getUpgradeValue('energy', true);
+            
+            document.getElementById('baskingCurrentValue').textContent = getUpgradeValue('basking');
+            document.getElementById('baskingNextValue').textContent = getUpgradeValue('basking', true);
+            
+            document.getElementById('collectingCurrentValue').textContent = getUpgradeValue('collecting');
+            document.getElementById('collectingNextValue').textContent = getUpgradeValue('collecting', true);
+            
+            document.getElementById('qualityCurrentValue').textContent = getUpgradeValue('quality');
+            document.getElementById('qualityNextValue').textContent = getUpgradeValue('quality', true);
+            
+            document.getElementById('growthCurrentValue').textContent = getUpgradeValue('growth');
+            document.getElementById('growthNextValue').textContent = getUpgradeValue('growth', true);
+            
+            // Enable/disable upgrade buttons based on affordability
+            toggleUpgradeButton(energyUpgrade, calculateUpgradeCost('energy') <= gameState.cacti);
+            toggleUpgradeButton(baskingUpgrade, calculateUpgradeCost('basking') <= gameState.cacti);
+            toggleUpgradeButton(collectingUpgrade, calculateUpgradeCost('collecting') <= gameState.cacti);
+            toggleUpgradeButton(qualityUpgrade, calculateUpgradeCost('quality') <= gameState.cacti);
+            toggleUpgradeButton(growthUpgrade, calculateUpgradeCost('growth') <= gameState.cacti);
+            
+            // Update fragments display
+            updateFragmentsDisplay();
+            
+            // Update current area display
+            currentAreaName.textContent = gameState.currentArea;
+            
+            // Update area tooltip
+            areaTooltip.innerHTML = getAreaTooltipContent(gameState.currentArea);
+            
+            // Update desert display color based on current area
+            desertDisplay.style.backgroundColor = currentAreaData.color;
+            
+            // Update cacti based on current area color
+            const cacti = document.querySelectorAll('.cactus');
+            cacti.forEach(cactus => {
+                // Keep cacti green regardless of area
+                cactus.style.backgroundColor = '#6A994E';
+            });
+            
+            // Update statistics display
+            updateStatistics();
+            
+            // Check for area switch cooldown
+            const now = Date.now();
+            const cooldownEnd = gameState.areaLastSwitch + (5 * 60 * 1000); // 5 minutes
+            const cooldownRemaining = Math.max(0, cooldownEnd - now);
+            
+            if (cooldownRemaining > 0 && gameState.unlockedAreas.length > 1) {
+                const minutes = Math.floor(cooldownRemaining / 60000);
+                const seconds = Math.floor((cooldownRemaining % 60000) / 1000);
+                switchCooldownText.textContent = `Cooldown remaining: ${minutes}m ${seconds}s`;
+                
+                // Disable switch button if cooldown is active
+                switchAreaBtn.disabled = true;
+                switchAreaBtn.classList.add('opacity-50');
+            } else {
+                switchCooldownText.textContent = '';
+                
+                // Only enable switch button if there's more than one area
+                if (gameState.unlockedAreas.length > 1) {
+                    switchAreaBtn.disabled = false;
+                    switchAreaBtn.classList.remove('opacity-50');
+                } else {
+                    switchAreaBtn.disabled = true;
+                    switchAreaBtn.classList.add('opacity-50');
+                }
+            }
+        }
+        
+        // Helper function to get a lighter color
+        function getLighterColor(hex, percent) {
+            // Convert hex to RGB
+            let r = parseInt(hex.substring(1, 3), 16);
+            let g = parseInt(hex.substring(3, 5), 16);
+            let b = parseInt(hex.substring(5, 7), 16);
+            
+            // Make lighter
+            r = Math.min(255, Math.floor(r * (1 + percent / 100)));
+            g = Math.min(255, Math.floor(g * (1 + percent / 100)));
+            b = Math.min(255, Math.floor(b * (1 + percent / 100)));
+            
+            // Convert back to hex
+            return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        }
+        
+        // Update fragments display
+        function updateFragmentsDisplay() {
+            fragmentsDisplay.textContent = `${gameState.mapFragments}/7`;
+            fragmentsProgress.textContent = `${gameState.mapFragments}/7`;
+            
+            // Enable unlock button if enough fragments
+            if (gameState.mapFragments >= 7) {
+                unlockAreaBtn.disabled = false;
+                unlockAreaBtn.classList.remove('disabled', 'opacity-50');
+            } else {
+                unlockAreaBtn.disabled = true;
+                unlockAreaBtn.classList.add('disabled', 'opacity-50');
+            }
+        }
+        
+        // Update statistics display
+        function updateStatistics() {
+            statTotalCactiCollected.textContent = Math.floor(gameState.totalCactiCollected);
+            statCurrentCacti.textContent = Math.floor(gameState.cacti);
+            statMapFragments.textContent = `${gameState.mapFragments}/7`;
+            
+            // Format time played
+            const hours = Math.floor(gameState.totalTimePlayed / 3600);
+            const minutes = Math.floor((gameState.totalTimePlayed % 3600) / 60);
+            const seconds = Math.floor(gameState.totalTimePlayed % 60);
+            statTimePlayed.textContent = `${hours}h ${minutes}m ${seconds}s`;
+            
+            statUpgradesPurchased.textContent = gameState.totalUpgradesPurchased;
+            statAreasUnlocked.textContent = gameState.totalAreasUnlocked;
+            
+            // Current area stats
+            const currentAreaData = gameState.areasData[gameState.currentArea];
+            statAreaEnergyLevel.textContent = currentAreaData.energyLevel;
+            statAreaBaskingLevel.textContent = currentAreaData.baskingLevel;
+            statAreaCollectingLevel.textContent = currentAreaData.collectingLevel;
+            statAreaQualityLevel.textContent = currentAreaData.qualityLevel;
+            statAreaGrowthLevel.textContent = currentAreaData.growthLevel;
+        }
+        
+        // Get area tooltip content
+        function getAreaTooltipContent(areaName) {
+            const areaData = gameState.areasData[areaName];
+            if (!areaData) return '';
+            
+            const valueModText = formatModifier(areaData.valueModifier);
+            const growthModText = formatModifier(areaData.growthModifier);
+            const collectingModText = formatModifier(areaData.collectingModifier);
+            const baskingModText = formatModifier(areaData.baskingModifier);
+            
+            return `
+                <div class="mb-1">${areaData.description || 'A desert area'}</div>
+                <div>• Cacti value: ${valueModText}</div>
+                <div>• Growth rate: ${growthModText}</div>
+                <div>• Collecting efficiency: ${collectingModText}</div>
+                <div>• Basking efficiency: ${baskingModText}</div>
+            `;
+        }
+        
+        // Format modifier for display
+        function formatModifier(value) {
+            const percent = ((value - 1) * 100).toFixed(0);
+            if (percent > 0) {
+                return `<span class="text-green-600">+${percent}%</span>`;
+            } else if (percent < 0) {
+                return `<span class="text-red-600">${percent}%</span>`;
+            } else {
+                return `<span>±0%</span>`;
+            }
+        }
+        
+        // Calculate upgrade cost based on current level
+        function calculateUpgradeCost(upgradeType) {
+            const baseCost = upgradeCosts[upgradeType];
+            const areaData = gameState.areasData[gameState.currentArea];
+            const level = areaData[`${upgradeType}Level`];
+            return Math.floor(baseCost * Math.pow(1.5, level - 1));
+        }
+        
+        // Toggle upgrade button enabled/disabled state
+        function toggleUpgradeButton(button, enabled) {
+            if (enabled) {
+                button.classList.remove('disabled');
+                button.disabled = false;
+            } else {
+                button.classList.add('disabled');
+                button.disabled = true;
+            }
+        }
+        
+        // Create desert display
+        function createDesert() {
+            cactusDisplay.innerHTML = '';
+            
+            // Create cacti
+            const numCacti = 25;
+            for (let i = 0; i < numCacti; i++) {
+                const cactus = document.createElement('div');
+                cactus.className = 'cactus';
+                cactus.style.left = `${Math.random() * 100}%`;
+                const height = 25 + Math.random() * 30;
+                cactus.style.height = `${height}px`;
+                cactus.dataset.fullHeight = height;
+                // Add some variation to cacti
+                if (Math.random() > 0.5) {
+                    // Add arm to cactus
+                    const arm = document.createElement('div');
+                    arm.className = 'absolute bg-green-700 rounded-t-sm';
+                    arm.style.width = '4px';
+                    arm.style.height = '8px';
+                    arm.style.left = '0px';
+                    arm.style.top = `${5 + Math.random() * 10}px`;
+                    arm.style.transform = Math.random() > 0.5 ? 'rotate(-30deg)' : 'rotate(30deg)';
+                    arm.style.transformOrigin = 'bottom center';
+                    cactus.appendChild(arm);
+                }
+                cactusDisplay.appendChild(cactus);
+            }
+            
+            // Add stones/rocks at random positions
+            for (let i = 0; i < 10; i++) {
+                const stone = document.createElement('div');
+                stone.className = 'absolute rounded-md bg-stone';
+                stone.style.left = `${Math.random() * 90}%`;
+                stone.style.bottom = '0';
+                stone.style.width = `${5 + Math.random() * 10}px`;
+                stone.style.height = `${3 + Math.random() * 6}px`;
+                cactusDisplay.appendChild(stone);
+            }
+            
+            // Add sand at the bottom
+            const sand = document.createElement('div');
+            sand.className = 'absolute bottom-0 w-full h-4 bg-sand-dark rounded-b-lg';
+            cactusDisplay.appendChild(sand);
+        }
+        
+        // Update cacti display based on available cacti
+        function updateCactiDisplay() {
+            const cactiPercentage = (gameState.availableCacti / gameState.maxCacti) * 100;
+            const allCacti = document.querySelectorAll('.cactus');
+            const totalCacti = allCacti.length;
+            const visibleCacti = Math.floor(totalCacti * (cactiPercentage / 100));
+            
+            // Sort cacti by position for more natural collecting pattern
+            const sortedCacti = Array.from(allCacti).sort((a, b) => {
+                return parseFloat(b.style.left) - parseFloat(a.style.left);
+            });
+            
+            sortedCacti.forEach((cactus, index) => {
+                if (index < visibleCacti) {
+                    // Visible cactus - show at full height if not explicitly collected
+                    if (cactus.style.height === '0px' && !cactus.dataset.isBeingCollected) {
+                        cactus.style.height = `${cactus.dataset.fullHeight}px`;
+                        cactus.style.transition = 'height 3s ease-out';
+                        
+                        // Remove transition after animation
+                        setTimeout(() => {
+                            cactus.style.transition = '';
+                        }, 3000);
+                    }
+                } else {
+                    // Invisible cactus - collected to zero height
+                    cactus.style.height = '0px';
+                }
+            });
+            
+            // Also display a cacti meter in the UI
+            const cactiPercText = Math.floor(cactiPercentage);
+            statusMessage.textContent = statusMessage.textContent.includes("cacti")
+                ? statusMessage.textContent : `Cacti: ${cactiPercText}% - ${statusMessage.textContent}`;
+        }
+        
+        // Draw gecko character
+        function drawGecko(state = 'idle') {
+            geckoElement.innerHTML = '';
+            
+            if (state === 'sleeping' || gameState.isResting) {
+                // Basking gecko
+                geckoElement.innerHTML = `
+                    <div class="relative">
+                        <div class="w-14 h-6 bg-gecko-light rounded-full flex items-center justify-center animate-sleep">
+                            <div class="w-10 h-5 bg-gecko-dark rounded-full flex items-center justify-center">
+                                <div class="w-8 h-2 bg-gecko-light rounded-t-full absolute -top-1"></div>
+                                <div class="flex items-center justify-center">
+                                    <div class="w-1.5 h-0.5 bg-black mx-1 rounded-full"></div>
+                                    <div class="w-1.5 h-0.5 bg-black mx-1 rounded-full"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sleep-bubble w-3 h-3 absolute -top-4 -right-1"></div>
+                        <div class="sleep-bubble w-4 h-4 absolute -top-6 -right-3"></div>
+                    </div>
+                `;
+            } else if (state === 'collecting') {
+                // Collecting cacti animation
+                geckoElement.innerHTML = `
+                    <div class="relative">
+                        <div class="w-14 h-6 bg-gecko-light rounded-full flex items-center justify-center animate-wiggle">
+                            <div class="w-10 h-5 bg-gecko-dark rounded-full flex items-center justify-center">
+                                <div class="w-8 h-2 bg-gecko-light rounded-t-full absolute -top-1"></div>
+                                <div class="flex items-center justify-center">
+                                    <div class="w-1.5 h-1.5 bg-black mx-1 rounded-full"></div>
+                                    <div class="w-1.5 h-1.5 bg-black mx-1 rounded-full"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="absolute h-1 w-5 bg-gecko-light rounded-full -right-4 top-2"></div>
+                        <div class="absolute h-1 w-5 bg-gecko-light rounded-full -left-4 top-2"></div>
+                    </div>
+                `;
+            } else {
+                // Idle gecko
+                geckoElement.innerHTML = `
+                    <div class="w-14 h-6 bg-gecko-light rounded-full flex items-center justify-center ${gameState.currentEnergy > 20 ? 'animate-scuttle' : ''}">
+                        <div class="w-10 h-5 bg-gecko-dark rounded-full flex items-center justify-center">
+                            <div class="w-8 h-2 bg-gecko-light rounded-t-full absolute -top-1"></div>
+                            <div class="flex items-center justify-center">
+                                <div class="w-1.5 h-1.5 bg-black mx-1 rounded-full"></div>
+                                <div class="w-1.5 h-1.5 bg-black mx-1 rounded-full"></div>
+                            </div>
+                        </div>
+                        <div class="absolute h-1 w-3 bg-gecko-light rounded-full -right-2 top-2"></div>
+                        <div class="absolute h-1 w-3 bg-gecko-light rounded-full -left-2 top-2"></div>
+                    </div>
+                `;
+            }
+        }
+        
+        // Show floating text (like "+1")
+        function showFloatingText(text, parentElement) {
+            const floatingText = document.createElement('div');
+            floatingText.textContent = text;
+            floatingText.className = 'absolute text-orange-600 font-bold text-lg pointer-events-none';
+            floatingText.style.left = '50%';
+            floatingText.style.top = '-20px';
+            floatingText.style.transform = 'translateX(-50%)';
+            floatingText.style.opacity = '0';
+            floatingText.style.animation = 'float-up 1.5s ease-out forwards';
+            
+            // Add animation for floating text
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes float-up {
+                    0% { transform: translate(-50%, 0); opacity: 0; }
+                    20% { opacity: 1; }
+                    80% { opacity: 1; }
+                    100% { transform: translate(-50%, -30px); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            parentElement.appendChild(floatingText);
+            
+            // Remove after animation completes
+            setTimeout(() => {
+                if (floatingText.parentElement === parentElement) {
+                    parentElement.removeChild(floatingText);
+                }
+            }, 1500);
+        }
+        
+        // Cacti collecting animation
+        function collectCactiAnimation() {
+            // Visual feedback for collecting - randomly collect multiple cacti
+            const cacti = document.querySelectorAll('.cactus');
+            const collectableCacti = Math.min(3, Math.ceil(gameState.collectingRate));
+            
+            if (cacti.length > 0) {
+                // Collect multiple cacti based on collecting rate
+                for (let i = 0; i < collectableCacti; i++) {
+                    // Find a cactus that's not collected yet
+                    const availableCacti = Array.from(cacti).filter(cactus => cactus.style.height !== '0px');
+                    
+                    if (availableCacti.length === 0) break;
+                    
+                    const randomCactus = availableCacti[Math.floor(Math.random() * availableCacti.length)];
+                    
+                    // Add collecting effect
+                    const originalHeight = randomCactus.style.height;
+                    const originalColor = randomCactus.style.backgroundColor || '#6A994E';
+                    
+                    // Flash the cactus being collected
+                    randomCactus.style.backgroundColor = '#FFFFFF';
+                    setTimeout(() => {
+                        randomCactus.style.backgroundColor = originalColor;
+                        randomCactus.style.height = '0px';
+                        
+                        // Create collected cactus particle
+                        const particle = document.createElement('div');
+                        particle.className = 'absolute bg-green-700 rounded-sm';
+                        particle.style.width = '6px';
+                        particle.style.height = '4px';
+                        particle.style.left = randomCactus.style.left;
+                        particle.style.bottom = '0';
+                        particle.style.transform = `rotate(${Math.random() * 360}deg)`;
+                        particle.style.animation = `fall-${Math.floor(Math.random() * 3)} 1s forwards`;
+                        
+                        // Add falling animation
+                        const style = document.createElement('style');
+                        style.textContent = `
+                            @keyframes fall-0 {
+                                0% { transform: translateY(0) rotate(0deg); }
+                                100% { transform: translateY(30px) rotate(360deg); opacity: 0; }
+                            }
+                            @keyframes fall-1 {
+                                0% { transform: translateY(0) rotate(0deg); }
+                                100% { transform: translateY(30px) translateX(10px) rotate(-360deg); opacity: 0; }
+                            }
+                            @keyframes fall-2 {
+                                0% { transform: translateY(0) rotate(0deg); }
+                                100% { transform: translateY(30px) translateX(-10px) rotate(180deg); opacity: 0; }
+                            }
+                        `;
+                        document.head.appendChild(style);
+                        
+                        cactusDisplay.appendChild(particle);
+                        
+                        // Remove particle after animation
+                        setTimeout(() => {
+                            if (particle.parentElement === cactusDisplay) {
+                                cactusDisplay.removeChild(particle);
+                            }
+                        }, 1000);
+                        
+                        // Animate regrowing if needed
+                        setTimeout(() => {
+                            if (gameState.availableCacti > gameState.maxCacti * 0.7) {
+                                randomCactus.style.height = originalHeight;
+                                randomCactus.style.transition = 'height 2s ease-out';
+                                
+                                // Remove transition after animation
+                                setTimeout(() => {
+                                    randomCactus.style.transition = '';
+                                }, 2000);
+                            }
+                        }, 5000);
+                    }, 50);
+                }
+            }
+        }
+        
+        // Upgrade functions
+        function upgrade(type) {
+            const cost = calculateUpgradeCost(type);
+            
+            if (gameState.cacti >= cost) {
+                gameState.cacti -= cost;
+                
+                // Update area-specific upgrade level
+                const areaData = gameState.areasData[gameState.currentArea];
+                areaData[`${type}Level`] += 1;
+                
+                // Track total upgrades purchased
+                gameState.totalUpgradesPurchased += 1;
+                
+                // Apply upgrade effects
+                switch(type) {
+                    case 'energy':
+                        const oldMax = gameState.maxEnergy;
+                        gameState.maxEnergy = 100 + (areaData.energyLevel - 1) * 20;
+                        // Keep the same percentage of energy after upgrade
+                        gameState.currentEnergy = (gameState.currentEnergy / oldMax) * gameState.maxEnergy;
+                        break;
+                    case 'basking':
+                        gameState.baskingRate = (5 + (areaData.baskingLevel - 1) * 2) * areaData.baskingModifier;
+                        break;
+                    case 'collecting':
+                        gameState.collectingRate = (1 + (areaData.collectingLevel - 1) * 0.5) * areaData.collectingModifier;
+                        break;
+                    case 'quality':
+                        gameState.cactiQuality = (1 + (areaData.qualityLevel - 1) * 0.5) * areaData.valueModifier;
+                        break;
+                    case 'growth':
+                        gameState.growthRate = (0.5 + (areaData.growthLevel - 1) * 0.1) * areaData.growthModifier;
+                        break;
+                }
+                
+                updateUI();
+                saveGame();
+                
+                // Check achievements
+                checkUpgradeAchievements();
+            }
+        }
+        
+        // Check upgrade-related achievements
+        function checkUpgradeAchievements() {
+            // Check for upgrade fan achievement
+            if (gameState.totalUpgradesPurchased >= 10 && !gameState.achievements.upgradeFan) {
+                unlockAchievement('upgradeFan');
+            }
+            
+            // Check for upgrade enthusiast achievement
+            if (gameState.totalUpgradesPurchased >= 50 && !gameState.achievements.upgradeEnthusiast) {
+                unlockAchievement('upgradeEnthusiast');
+            }
+            
+            // Check for super gecko achievement
+            let superGeckoEarned = false;
+            for (const areaName of gameState.unlockedAreas) {
+                const areaData = gameState.areasData[areaName];
+                if (areaData.energyLevel >= 10 || areaData.baskingLevel >= 10 || 
+                    areaData.collectingLevel >= 10 || areaData.qualityLevel >= 10 || 
+                    areaData.growthLevel >= 10) {
+                    superGeckoEarned = true;
+                    break;
+                }
+            }
+            
+            if (superGeckoEarned && !gameState.achievements.superGecko) {
+                unlockAchievement('superGecko');
+            }
+        }
+        
+        // Save game to localStorage
+        function saveGame() {
+            try {
+                // Update time played before saving
+                const now = Date.now();
+                const sessionTime = (now - gameState.lastPlayTime) / 1000;
+                gameState.totalTimePlayed += sessionTime;
+                gameState.lastPlayTime = now;
+                
+                const saveData = JSON.stringify(gameState);
+                localStorage.setItem('geckoDesertSave', saveData);
+            } catch (e) {
+                console.error('Could not save game:', e);
+            }
+        }
+        
+        // Manual save with visual feedback
+        function manualSaveGame() {
+            saveGame();
+            saveConfirmation.classList.remove('hidden');
+            setTimeout(() => {
+                saveConfirmation.classList.add('hidden');
+            }, 2000);
+        }
+        
+        // Load game from localStorage
+        function loadGame() {
+            try {
+                const savedGame = localStorage.getItem('geckoDesertSave');
+                if (savedGame) {
+                    const loadedState = JSON.parse(savedGame);
+                    // Handle version migration if needed
+                    if (loadedState.version !== VERSION) {
+                        // Add any new properties that might not exist in older versions
+                        if (!loadedState.totalCactiCollected) loadedState.totalCactiCollected = loadedState.totalCacti;
+                        if (!loadedState.totalTimePlayed) loadedState.totalTimePlayed = 0;
+                        if (!loadedState.startTime) loadedState.startTime = Date.now();
+                        if (!loadedState.lastPlayTime) loadedState.lastPlayTime = Date.now();
+                        if (!loadedState.totalUpgradesPurchased) loadedState.totalUpgradesPurchased = 0;
+                        if (!loadedState.mapFragments) loadedState.mapFragments = 0;
+                        if (!loadedState.achievements) loadedState.achievements = {};
+                        if (!loadedState.areasData) {
+                            loadedState.areasData = {
+                                'Desert': {
+                                    cactiQuality: loadedState.cactiQuality || 1,
+                                    growthRate: loadedState.growthRate || 0.5,
+                                    energyLevel: loadedState.energyLevel || 1,
+                                    baskingLevel: loadedState.baskingLevel || 1,
+                                    collectingLevel: loadedState.collectingLevel || 1,
+                                    qualityLevel: loadedState.qualityLevel || 1,
+                                    growthLevel: loadedState.growthLevel || 1,
+                                    valueModifier: 1,
+                                    growthModifier: 1,
+                                    collectingModifier: 1,
+                                    baskingModifier: 1,
+                                    color: '#E2C799',
+                                    description: 'The starting area with balanced conditions'
+                                }
+                            };
+                        }
+                        if (!loadedState.currentArea) loadedState.currentArea = 'Desert';
+                        if (!loadedState.unlockedAreas) loadedState.unlockedAreas = ['Desert'];
+                        if (!loadedState.areaLastSwitch) loadedState.areaLastSwitch = 0;
+                        if (!loadedState.totalAreasUnlocked) loadedState.totalAreasUnlocked = loadedState.unlockedAreas.length;
+                    }
+                    
+                    // Make sure all achievements exist
+                    if (!loadedState.achievements) loadedState.achievements = {};
+                    Object.keys(achievementDefinitions).forEach(key => {
+                        if (loadedState.achievements[key] === undefined) {
+                            loadedState.achievements[key] = false;
+                        }
+                    });
+                    
+                    gameState = Object.assign({}, gameState, loadedState);
+                    gameState.version = VERSION;
+                    
+                    // Update the actual game properties from the area data
+                    updatePropertiesFromCurrentArea();
+                }
+            } catch (e) {
+                console.error('Could not load saved game:', e);
+            }
+        }
+        
+        // Update game properties from current area data
+        function updatePropertiesFromCurrentArea() {
+            const areaData = gameState.areasData[gameState.currentArea];
+            if (!areaData) return;
+            
+            // Apply area values to global game properties
+            gameState.cactiQuality = (1 + (areaData.qualityLevel - 1) * 0.5) * areaData.valueModifier;
+            gameState.growthRate = (0.5 + (areaData.growthLevel - 1) * 0.1) * areaData.growthModifier;
+            gameState.collectingRate = (1 + (areaData.collectingLevel - 1) * 0.5) * areaData.collectingModifier;
+            gameState.baskingRate = (5 + (areaData.baskingLevel - 1) * 2) * areaData.baskingModifier;
+            gameState.maxEnergy = 100 + (areaData.energyLevel - 1) * 20;
+        }
+        
+        // Export save as Base64 and display in dialog
+        function exportGameState() {
+            try {
+                // Update time played before exporting
+                const now = Date.now();
+                const sessionTime = (now - gameState.lastPlayTime) / 1000;
+                gameState.totalTimePlayed += sessionTime;
+                gameState.lastPlayTime = now;
+                
+                const saveData = JSON.stringify(gameState);
+                const base64Save = btoa(saveData);
+                
+                // Show in export dialog
+                exportText.value = base64Save;
+                exportDialog.classList.remove('hidden');
+                exportDialog.classList.add('flex');
+                
+                // Select the text for easy copying
+                exportText.select();
+                
+            } catch (e) {
+                console.error('Could not export save:', e);
+                statusMessage.textContent = "Error exporting save";
+            }
+        }
+        
+        // Copy export text to clipboard
+        function copyExportToClipboard() {
+            exportText.select();
+            document.execCommand('copy');
+            
+            // Show feedback
+            copyToClipboard.textContent = "Copied!";
+            setTimeout(() => {
+                copyToClipboard.textContent = "Copy to Clipboard";
+            }, 2000);
+        }
+        
+        // Import save from Base64
+        function importGameState(base64Save) {
+            try {
+                const saveData = atob(base64Save);
+                const loadedState = JSON.parse(saveData);
+                
+                // Verify it's a valid save
+                if (!loadedState.version) {
+                    throw new Error('Invalid save data');
+                }
+                
+                // Apply save data
+                gameState = Object.assign({}, gameState, loadedState);
+                
+                // Make sure all achievements exist
+                Object.keys(achievementDefinitions).forEach(key => {
+                    if (gameState.achievements[key] === undefined) {
+                        gameState.achievements[key] = false;
+                    }
+                });
+                
+                // Update the actual game properties from the area data
+                updatePropertiesFromCurrentArea();
+                
+                // Update UI
+                updateUI();
+                populateAreasUI();
+                populateAchievements();
+                
+                saveGame();
+                
+                statusMessage.textContent = "Save data imported successfully!";
+                setTimeout(() => statusMessage.textContent = gameState.isResting ? "Gecko is basking... 🌞" : "Gecko is collecting cacti...", 3000);
+            } catch (e) {
+                console.error('Could not import save:', e);
+                statusMessage.textContent = "Error importing save";
+            }
+        }
+        
+        // Generate a random area
+        function generateRandomArea() {
+            // Pick a random name and adjective
+            const nameIndex = Math.floor(Math.random() * areaTemplates.names.length);
+            const adjectiveIndex = Math.floor(Math.random() * areaTemplates.adjectives.length);
+            const name = areaTemplates.adjectives[adjectiveIndex] + " " + areaTemplates.names[nameIndex];
+            
+            // Pick a random color
+            const colorIndex = Math.floor(Math.random() * areaTemplates.colors.length);
+            const color = areaTemplates.colors[colorIndex];
+            
+            // Determine rarity based on chance
+            let rarity = areaTemplates.rarities[0]; // Default to common
+            const rarityRoll = Math.random();
+            let cumulativeChance = 0;
+            
+            for (const rarityType of areaTemplates.rarities) {
+                cumulativeChance += rarityType.chance;
+                if (rarityRoll <= cumulativeChance) {
+                    rarity = rarityType;
+                    break;
+                }
+            }
+            
+            // Generate random modifiers based on rarity
+            const modifiers = {};
+            
+            for (const [key, range] of Object.entries(areaTemplates.modifierRanges)) {
+                // Base random value between min and max
+                const baseModifier = range[0] + Math.random() * (range[1] - range[0]);
+                
+                // Apply rarity multiplier to make the modifiers more extreme for rarer areas
+                const modifierValue = 1 + (baseModifier * rarity.modifierMultiplier);
+                
+                // Ensure modifier is at least 0.5 (50% of normal) and no more than 2.0 (200% of normal)
+                modifiers[key] = Math.max(0.5, Math.min(2.0, modifierValue));
+            }
+            
+            // Create area description
+            let description = `A ${rarity.name.toLowerCase()} ${areaTemplates.names[nameIndex].toLowerCase()} with `;
+            
+            // Create description based on dominant characteristics
+            const dominantTraits = [];
+            
+            if (modifiers.valueModifier > 1.2) dominantTraits.push("valuable cacti");
+            else if (modifiers.valueModifier < 0.8) dominantTraits.push("low-quality cacti");
+            
+            if (modifiers.growthModifier > 1.2) dominantTraits.push("fast growth");
+            else if (modifiers.growthModifier < 0.8) dominantTraits.push("slow growth");
+            
+            if (modifiers.collectingModifier > 1.2) dominantTraits.push("easy collecting");
+            else if (modifiers.collectingModifier < 0.8) dominantTraits.push("tough cacti");
+            
+            if (modifiers.baskingModifier > 1.2) dominantTraits.push("excellent basking conditions");
+            else if (modifiers.baskingModifier < 0.8) dominantTraits.push("poor basking conditions");
+            
+            if (dominantTraits.length > 0) {
+                description += dominantTraits.join(" and ");
+            } else {
+                description += "balanced conditions";
+            }
+            
+            // Create area data
+            const areaData = {
+                cactiQuality: 1,
+                growthRate: 0.5,
+                energyLevel: 1,
+                baskingLevel: 1,
+                collectingLevel: 1,
+                qualityLevel: 1,
+                growthLevel: 1,
+                valueModifier: modifiers.valueModifier,
+                growthModifier: modifiers.growthModifier,
+                collectingModifier: modifiers.collectingModifier,
+                baskingModifier: modifiers.baskingModifier,
+                color: color,
+                description: description,
+                rarity: rarity.name
+            };
+            
+            return {
+                name,
+                data: areaData
+            };
+        }
+        
+        // Unlock a new random area
+        function unlockNewArea() {
+            if (gameState.mapFragments >= 7) {
+                // Use up the map fragments
+                gameState.mapFragments -= 7;
+                
+                // Generate a random area
+                const newArea = generateRandomArea();
+                
+                // Add to unlocked areas
+                gameState.unlockedAreas.push(newArea.name);
+                gameState.areasData[newArea.name] = newArea.data;
+                gameState.totalAreasUnlocked++;
+                
+                // Update UI
+                updateFragmentsDisplay();
+                populateAreasUI();
+                
+                // Show new area dialog
+                showNewAreaDialog(newArea.name);
+                
+                // Check for area-related achievements
+                if (gameState.totalAreasUnlocked >= 3 && !gameState.achievements.traveller) {
+                    unlockAchievement('traveller');
+                }
+                
+                if (gameState.totalAreasUnlocked >= 10 && !gameState.achievements.explorer) {
+                    unlockAchievement('explorer');
+                }
+                
+                saveGame();
+            }
+        }
+        
+        // Show new area discovery dialog
+        function showNewAreaDialog(areaName) {
+            const areaData = gameState.areasData[areaName];
+            
+            // Create area info HTML
+            newAreaInfo.style.backgroundColor = `${areaData.color}30`; // 30 is hex for 0.2 opacity
+            
+            newAreaInfo.innerHTML = `
+                <div class="flex justify-between items-center mb-1">
+                    <div class="font-medium text-lg">${areaName}</div>
+                    <div class="text-xs py-1 px-2 bg-blue-100 rounded">${areaData.rarity}</div>
+                </div>
+                <div class="text-sm text-gray-600 mt-1 mb-2 dark:text-gray-300">${areaData.description}</div>
+                <div class="grid grid-cols-2 gap-1 mt-2">
+                    <div class="text-xs">Value: <span class="font-medium">${formatModifier(areaData.valueModifier)}</span></div>
+                    <div class="text-xs">Growth: <span class="font-medium">${formatModifier(areaData.growthModifier)}</span></div>
+                    <div class="text-xs">Collecting: <span class="font-medium">${formatModifier(areaData.collectingModifier)}</span></div>
+                    <div class="text-xs">Basking: <span class="font-medium">${formatModifier(areaData.baskingModifier)}</span></div>
+                </div>
+            `;
+            
+            // Show dialog
+            newAreaDialog.classList.remove('hidden');
+            newAreaDialog.classList.add('flex');
+        }
+        
+        // Switch to a different area
+        function switchArea(areaName) {
+            if (gameState.unlockedAreas.includes(areaName) && areaName !== gameState.currentArea) {
+                // Check cooldown
+                const now = Date.now();
+                const cooldownEnd = gameState.areaLastSwitch + (5 * 60 * 1000); // 5 minutes
+                
+                if (now < cooldownEnd) {
+                    // Still on cooldown
+                    const remainingTime = Math.ceil((cooldownEnd - now) / 1000);
+                    const minutes = Math.floor(remainingTime / 60);
+                    const seconds = remainingTime % 60;
+                    
+                    statusMessage.textContent = `Area switch on cooldown: ${minutes}m ${seconds}s remaining`;
+                    return;
+                }
+                
+                // Check if player has enough cacti
+                if (gameState.cacti < 100) {
+                    statusMessage.textContent = `You need 100 cacti to switch areas`;
+                    return;
+                }
+                
+                // Save current area data
+                const currentAreaData = gameState.areasData[gameState.currentArea];
+                currentAreaData.cactiQuality = gameState.cactiQuality;
+                currentAreaData.growthRate = gameState.growthRate;
+                currentAreaData.collectingRate = gameState.collectingRate;
+                currentAreaData.baskingRate = gameState.baskingRate;
+                
+                // Switch area
+                gameState.cacti -= 100;
+                gameState.currentArea = areaName;
+                gameState.areaLastSwitch = now;
+                
+                // Update game properties from new area
+                updatePropertiesFromCurrentArea();
+                
+                // Update UI
+                updateUI();
+                
+                // Show confirmation
+                statusMessage.textContent = `Switched to ${areaName}`;
+                
+                saveGame();
+            }
+        }
+        
+        // Populate areas UI
+        function populateAreasUI() {
+            // Update unlocked areas list in areas tab
+            const unlockedAreasContainer = document.getElementById('unlockedAreasContainer');
+            unlockedAreasContainer.innerHTML = '';
+            
+            gameState.unlockedAreas.forEach(areaName => {
+                const areaData = gameState.areasData[areaName];
+                if (!areaData) return;
+                
+                const areaCard = document.createElement('div');
+                areaCard.className = `area-card p-3 rounded-lg ${areaName === gameState.currentArea ? 'selected' : ''}`;
+                areaCard.style.backgroundColor = `${areaData.color}30`; // 30 is hex for 0.2 opacity
+                areaCard.dataset.area = areaName;
+                
+                areaCard.innerHTML = `
+                    <div class="flex justify-between items-center mb-1">
+                        <div class="font-medium">${areaName}</div>
+                        <div class="text-xs py-1 px-2 bg-blue-100 rounded">${areaData.rarity || 'Standard'}</div>
+                    </div>
+                    <div class="text-xs text-gray-600 mt-1 dark:text-gray-300">${areaData.description}</div>
+                    <div class="grid grid-cols-2 gap-1 mt-2">
+                        <div class="text-xs">Value: <span class="font-medium">${formatModifier(areaData.valueModifier)}</span></div>
+                        <div class="text-xs">Growth: <span class="font-medium">${formatModifier(areaData.growthModifier)}</span></div>
+                        <div class="text-xs">Collecting: <span class="font-medium">${formatModifier(areaData.collectingModifier)}</span></div>
+                        <div class="text-xs">Basking: <span class="font-medium">${formatModifier(areaData.baskingModifier)}</span></div>
+                    </div>
+                `;
+                
+                // Add click event to select area
+                areaCard.addEventListener('click', (e) => {
+                    // Only highlight the selected area, don't switch immediately
+                    const allCards = document.querySelectorAll('.area-card');
+                    allCards.forEach(card => card.classList.remove('selected'));
+                    areaCard.classList.add('selected');
+                });
+                
+                unlockedAreasContainer.appendChild(areaCard);
+            });
+            
+            // Also update the area switch dialog list
+            areasList.innerHTML = '';
+            
+            gameState.unlockedAreas.forEach(areaName => {
+                if (areaName === gameState.currentArea) return; // Skip current area
+                
+                const areaData = gameState.areasData[areaName];
+                if (!areaData) return;
+                
+                const areaOption = document.createElement('div');
+                areaOption.className = 'p-2 hover:bg-gray-100 cursor-pointer rounded-lg mb-2 dark:hover:bg-gray-700';
+                areaOption.dataset.area = areaName;
+                
+                areaOption.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div class="font-medium">${areaName}</div>
+                        <div class="text-xs py-0.5 px-1.5 bg-blue-100 rounded dark:bg-blue-800">${areaData.rarity || 'Standard'}</div>
+                    </div>
+                    <div class="text-xs text-gray-600 mt-1 dark:text-gray-300">${areaData.description}</div>
+                `;
+                
+                areaOption.addEventListener('click', () => {
+                    const allOptions = areasList.querySelectorAll('div');
+                    allOptions.forEach(opt => opt.classList.remove('bg-gray-200', 'dark:bg-gray-600'));
+                    areaOption.classList.add('bg-gray-200', 'dark:bg-gray-600');
+                    
+                    // Store selected area in the dialog
+                    areaSwitchDialog.dataset.selectedArea = areaName;
+                });
+                
+                areasList.appendChild(areaOption);
+            });
+        }
+        
+        // Populate achievements list
+        function populateAchievements() {
+            achievementsList.innerHTML = '';
+            
+            Object.entries(achievementDefinitions).forEach(([key, achievement]) => {
+                const isUnlocked = gameState.achievements[key];
+                
+                const achievementCard = document.createElement('div');
+                achievementCard.className = `achievement-card p-3 rounded-lg ${isUnlocked ? 'unlocked bg-yellow-50 dark:bg-yellow-900' : 'locked bg-gray-50'}`;
+                
+                achievementCard.innerHTML = `
+                    <div class="flex items-start">
+                        <div class="text-2xl mr-3">${achievement.icon}</div>
+                        <div>
+                            <div class="font-medium">${achievement.name}</div>
+                            <div class="text-xs text-gray-600 dark:text-gray-300 mt-1">${achievement.description}</div>
+                        </div>
+                        <div class="ml-auto">
+                            ${isUnlocked ? '<div class="text-xs py-1 px-2 bg-yellow-200 dark:bg-yellow-700 rounded text-yellow-800 dark:text-yellow-100">Unlocked</div>' : ''}
+                        </div>
+                    </div>
+                `;
+                
+                achievementsList.appendChild(achievementCard);
+            });
+        }
+        
+        // Unlock an achievement
+        function unlockAchievement(achievementId) {
+            if (gameState.achievements[achievementId]) return; // Already unlocked
+            
+            gameState.achievements[achievementId] = true;
+            
+            // Show notification
+            const achievement = achievementDefinitions[achievementId];
+            achievementName.textContent = achievement.name;
+            achievementNotification.classList.remove('hidden');
+            
+            // Hide notification after a few seconds
+            setTimeout(() => {
+                achievementNotification.classList.add('hidden');
+            }, 5000);
+            
+            // Update achievements UI
+            populateAchievements();
+            
+            // Check for legendary collector achievement
+            checkLegendaryCollector();
+            
+            saveGame();
+        }
+        
+        // Check for the "Legendary Collector" achievement (all other achievements unlocked)
+        function checkLegendaryCollector() {
+            if (gameState.achievements.legendaryCollector) return; // Already unlocked
+            
+            // Check if all other achievements are unlocked
+            const allAchievements = Object.keys(achievementDefinitions)
+                .filter(key => key !== 'legendaryCollector');
+            
+            const allUnlocked = allAchievements.every(key => gameState.achievements[key]);
+            
+            if (allUnlocked) {
+                unlockAchievement('legendaryCollector');
+            }
+        }
+        
+        // Check for achievements based on game state
+        function checkAchievements() {
+            // Check cacti-related achievements
+            if (gameState.totalCacti >= 100 && !gameState.achievements.cactiHoarder) {
+                unlockAchievement('cactiHoarder');
+            }
+            
+            if (gameState.totalCacti >= 1000 && !gameState.achievements.cactiTycoon) {
+                unlockAchievement('cactiTycoon');
+            }
+            
+            if (gameState.totalCacti >= 10000 && !gameState.achievements.cactiMogul) {
+                unlockAchievement('cactiMogul');
+            }
+            
+            // Check time-played achievements
+            const hoursPlayed = gameState.totalTimePlayed / 3600;
+            
+            if (hoursPlayed >= 5 && !gameState.achievements.dedicatedCollector) {
+                unlockAchievement('dedicatedCollector');
+            }
+            
+            if (hoursPlayed >= 50 && !gameState.achievements.veteranCollector) {
+                unlockAchievement('veteranCollector');
+            }
+            
+            if (hoursPlayed >= 100 && !gameState.achievements.masterCollector) {
+                unlockAchievement('masterCollector');
+            }
+        }
+        
+        // Tab switching functionality
+        function showTab(tabId) {
+            // Hide all tabs
+            upgradesTab.classList.add('hidden');
+            areasTab.classList.add('hidden');
+            statsTab.classList.add('hidden');
+            achievementsTab.classList.add('hidden');
+            
+            // Remove active class from all buttons
+            tabButtons.forEach(button => button.classList.remove('active'));
+            
+            // Show the selected tab
+            document.getElementById(`${tabId}Tab`).classList.remove('hidden');
+            
+            // Add active class to the clicked button
+            Array.from(tabButtons).find(button => button.dataset.tab === tabId).classList.add('active');
+        }
+        
+        // Event listeners
+        window.addEventListener('load', initGame);
+        
+        // Tab navigation
+        tabButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                showTab(e.target.dataset.tab);
+            });
+        });
+        
+        // Upgrade buttons
+        energyUpgrade.addEventListener('click', () => upgrade('energy'));
+        baskingUpgrade.addEventListener('click', () => upgrade('basking'));
+        collectingUpgrade.addEventListener('click', () => upgrade('collecting'));
+        qualityUpgrade.addEventListener('click', () => upgrade('quality'));
+        growthUpgrade.addEventListener('click', () => upgrade('growth'));
+        
+        // Save and load buttons
+        exportSave.addEventListener('click', exportGameState);
+        exportClose.addEventListener('click', () => {
+            exportDialog.classList.add('hidden');
+            exportDialog.classList.remove('flex');
+        });
+        copyToClipboard.addEventListener('click', copyExportToClipboard);
+        
+        manualSave.addEventListener('click', manualSaveGame);
+        
+        importSave.addEventListener('click', () => {
+            importDialog.classList.remove('hidden');
+            importDialog.classList.add('flex');
+        });
+        
+        importCancel.addEventListener('click', () => {
+            importDialog.classList.add('hidden');
+            importDialog.classList.remove('flex');
+        });
+        
+        importConfirm.addEventListener('click', () => {
+            const saveText = importText.value.trim();
+            if (saveText) {
+                importGameState(saveText);
+            }
+            importDialog.classList.add('hidden');
+            importDialog.classList.remove('flex');
+        });
+        
+        // Area related buttons
+        unlockAreaBtn.addEventListener('click', unlockNewArea);
+        
+        switchAreaBtn.addEventListener('click', () => {
+            // Check if there are any areas to switch to
+            if (gameState.unlockedAreas.length <= 1) {
+                statusMessage.textContent = "No other areas available yet";
+                return;
+            }
+            
+            // Check cooldown
+            const now = Date.now();
+            const cooldownEnd = gameState.areaLastSwitch + (5 * 60 * 1000); // 5 minutes
+            const cooldownRemaining = Math.max(0, cooldownEnd - now);
+            
+            if (cooldownRemaining > 0) {
+                const minutes = Math.floor(cooldownRemaining / 60000);
+                const seconds = Math.floor((cooldownRemaining % 60000) / 1000);
+                switchCooldownText.textContent = `Cooldown remaining: ${minutes}m ${seconds}s`;
+                
+                // Disable confirm button if cooldown is active
+                switchConfirm.disabled = true;
+                switchConfirm.classList.add('opacity-50');
+            } else {
+                switchCooldownText.textContent = '';
+                
+                // Enable confirm button if player has enough cacti
+                if (gameState.cacti >= 100) {
+                    switchConfirm.disabled = false;
+                    switchConfirm.classList.remove('opacity-50');
+                } else {
+                    switchConfirm.disabled = true;
+                    switchConfirm.classList.add('opacity-50');
+                    switchCooldownText.textContent = `Not enough cacti. Need 100, have ${Math.floor(gameState.cacti)}.`;
+                }
+            }
+            
+            // Show the dialog
+            areaSwitchDialog.classList.remove('hidden');
+            areaSwitchDialog.classList.add('flex');
+            
+            // Clear any previously selected area
+            areaSwitchDialog.dataset.selectedArea = '';
+            const allOptions = areasList.querySelectorAll('div');
+            allOptions.forEach(opt => opt.classList.remove('bg-gray-200', 'dark:bg-gray-600'));
+        });
+        
+        switchCancel.addEventListener('click', () => {
+            areaSwitchDialog.classList.add('hidden');
+            areaSwitchDialog.classList.remove('flex');
+        });
+        
+        switchConfirm.addEventListener('click', () => {
+            const selectedArea = areaSwitchDialog.dataset.selectedArea;
+            if (selectedArea) {
+                switchArea(selectedArea);
+            }
+            areaSwitchDialog.classList.add('hidden');
+            areaSwitchDialog.classList.remove('flex');
+        });
+        
+        newAreaConfirm.addEventListener('click', () => {
+            newAreaDialog.classList.add('hidden');
+            newAreaDialog.classList.remove('flex');
+        });
+        
+        toggleTheme.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+        });
+        
+        // Handle window focus/blur for performance optimization
+        window.addEventListener('blur', () => {
+            // Slow down update rate when tab is not focused
+            gameState.lastUpdate = Date.now();
+        });
+        
+        window.addEventListener('focus', () => {
+            // Resume normal update rate
+            gameState.lastUpdate = Date.now();
+        });
+        
+        // Before window unloads, save the game
+        window.addEventListener('beforeunload', saveGame);
+    </script>
+</body>
+</html>
