@@ -938,6 +938,48 @@
         const achievementName = document.getElementById('achievementName');
         const achievementsList = document.getElementById('achievementsList');
         
+        // Format large numbers to be readable
+        function formatNumber(num) {
+            if (num === undefined || isNaN(num)) return "0";
+            
+            // Handle negative numbers
+            const isNegative = num < 0;
+            num = Math.abs(num);
+            
+            // For very small numbers, just return 0
+            if (num < 0.01) return "0";
+            
+            // For numbers less than 1000, show as is with up to 2 decimal places
+            if (num < 1000) {
+                if (Number.isInteger(num)) {
+                    return (isNegative ? "-" : "") + num.toString();
+                } else {
+                    return (isNegative ? "-" : "") + num.toFixed(2).replace(/\.00$/, "").replace(/\.(\d)0$/, ".$1");
+                }
+            }
+            
+            // For scientific notation (very large numbers)
+            if (num >= 1e15) {
+                return (isNegative ? "-" : "") + num.toExponential(2).replace(/\.00e/, "e").replace(/\.(\d)0e/, ".$1e");
+            }
+            
+            // For large numbers, use suffixes
+            const suffixes = ["", "K", "M", "B", "T"];
+            const tier = Math.floor(Math.log10(num) / 3);
+            
+            if (tier >= suffixes.length) {
+                return (isNegative ? "-" : "") + num.toExponential(2);
+            }
+            
+            const scale = Math.pow(10, tier * 3);
+            const scaled = num / scale;
+            
+            // Format with 1-2 decimal places, removing trailing zeros
+            let formatted = scaled.toFixed(2).replace(/\.00$/, "").replace(/\.(\d)0$/, ".$1");
+            
+            return (isNegative ? "-" : "") + formatted + suffixes[tier];
+        }
+        
         // Initialize game
         function initGame() {
             // Try to load saved game
@@ -1067,7 +1109,7 @@
                             const cactiGained = effectiveCollectAmount * gameState.cactiQuality * areaValueModifier;
                             
                             // Show floating text for cacti gained
-                            showFloatingText(`+${Math.floor(cactiGained)}`, geckoElement);
+                            showFloatingText(`+${formatNumber(Math.floor(cactiGained))}`, geckoElement);
                             
                             // Add to inventory with slight delay for visual feedback
                             setTimeout(() => {
@@ -1166,7 +1208,7 @@
         // Update UI elements
         function updateUI() {
             // Update resource displays
-            cactusCount.textContent = Math.floor(gameState.cacti);
+            cactusCount.textContent = formatNumber(Math.floor(gameState.cacti));
             
             // Update energy bar
             const energyPercentage = (gameState.currentEnergy / gameState.maxEnergy) * 100;
@@ -1183,11 +1225,11 @@
             growthLevel.textContent = currentAreaData.growthLevel;
             
             // Update upgrade costs
-            energyCost.textContent = calculateUpgradeCost('energy');
-            baskingCost.textContent = calculateUpgradeCost('basking');
-            collectingCost.textContent = calculateUpgradeCost('collecting');
-            qualityCost.textContent = calculateUpgradeCost('quality');
-            growthCost.textContent = calculateUpgradeCost('growth');
+            energyCost.textContent = formatNumber(calculateUpgradeCost('energy'));
+            baskingCost.textContent = formatNumber(calculateUpgradeCost('basking'));
+            collectingCost.textContent = formatNumber(calculateUpgradeCost('collecting'));
+            qualityCost.textContent = formatNumber(calculateUpgradeCost('quality'));
+            growthCost.textContent = formatNumber(calculateUpgradeCost('growth'));
             
             // Update upgrade values - current and next
             document.getElementById('energyCurrentValue').textContent = getUpgradeValue('energy');
@@ -1294,8 +1336,8 @@
         
         // Update statistics display
         function updateStatistics() {
-            statTotalCactiCollected.textContent = Math.floor(gameState.totalCactiCollected);
-            statCurrentCacti.textContent = Math.floor(gameState.cacti);
+            statTotalCactiCollected.textContent = formatNumber(Math.floor(gameState.totalCactiCollected));
+            statCurrentCacti.textContent = formatNumber(Math.floor(gameState.cacti));
             statMapFragments.textContent = `${gameState.mapFragments}/7`;
             
             // Format time played
